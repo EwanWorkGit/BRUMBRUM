@@ -20,7 +20,7 @@ public class CameraMovement : MonoBehaviour
 
     private void Update()
     {
-        float ProgressFOV = Mathf.Abs(Movement.Rb.velocity.magnitude / Movement.MaxVel);
+        //float ProgressFOV = Mathf.Abs(Movement.Rb.velocity.magnitude / Movement.MaxVel);
         //Cam.fieldOfView = Mathf.Lerp(BaseFOV, MaxFOV, ProgressFOV);
 
         Angle -= Input.GetAxisRaw("Mouse X");

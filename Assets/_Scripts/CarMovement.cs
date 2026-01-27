@@ -1,68 +1,74 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class CarMovement : MonoBehaviour
 {
     public float MaxVel = 20f;
-    public Rigidbody Rb;
 
-    [SerializeField] Transform GroundChecker;
-    [SerializeField] float EngineForce = 20f, RotSpeed = 5f, GripForce = 20f, DesiredOffset = 1f, SuspStrength, DamperStrength;
-    [SerializeField] bool IsGrounded = true, IsMoving;
+    [SerializeField] Rigidbody Rb;
+    [SerializeField] Transform[] Wheels;
+    [SerializeField] Transform[] Suspentions;
+    [SerializeField] Transform COM;
+    [SerializeField] float[] CurrentAngles;
+    [SerializeField] float EngineForce = 20f, GripFactor = 0.8f, DesiredOffset = 1f, SuspStrength, DamperStrength, RotSpeed = 5f, WheelMass = 1f, MaxTurnAngle = 40f;
 
     private void Start()
     {
         Physics.gravity = new Vector3(0f, -19.82f, 0f);
+        Rb.centerOfMass = COM.position;
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
-        Vector2 inputs = new(Input.GetAxis("Horizontal"), IsGrounded ? Input.GetAxis("Vertical") : 0);
+        Vector2 inputs = new(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
 
-        Physics.Raycast(GroundChecker.position, -transform.up, out RaycastHit hit, 2f);
-        IsGrounded = hit.collider != null;
-
-        IsMoving = Mathf.Abs(Rb.velocity.magnitude) > 0.05f;
-
-        if(IsMoving)
+        for(int i = 0; i < Wheels.Length; i++)
         {
-            float progressTurn = Rb.velocity.magnitude / MaxVel; //progress for speedup at low speeds
+            Physics.Raycast(Wheels[i].position, -Suspentions[i].up, out RaycastHit hit, DesiredOffset * 1.5f);
+            if(hit.collider != null)
+            {
+                //suspention force
+                float offset = DesiredOffset - hit.distance;
+                float maxCompression = 0.5f * DesiredOffset;
+                float softOffset = Mathf.Clamp(offset, -maxCompression, maxCompression);
 
-            Quaternion rot = Rb.rotation;
-            rot *= Quaternion.Euler(0f, inputs.x * RotSpeed * Mathf.Lerp(1.5f, 0.9f, progressTurn) * Time.deltaTime, 0f);
-            Rb.MoveRotation(rot);
+                float spring = softOffset * SuspStrength;
+                float damper = Vector3.Dot(Suspentions[i].up, Rb.GetPointVelocity(hit.point)) * DamperStrength;
+
+                float suspForce = spring - damper;
+                Vector3 springForce = Wheels[i].up * suspForce;
+
+                Rb.AddForceAtPosition(springForce, hit.point);
+                
+                //engine force
+                Vector3 engineForce = Wheels[i].forward * inputs.y * EngineForce;
+                Rb.AddForceAtPosition(engineForce, hit.point);
+
+                //side force
+                Vector3 steerDir = Wheels[i].right;
+                Vector3 wheelVel = Rb.GetPointVelocity(Wheels[i].position);
+                float steeringVel = Vector3.Dot(steerDir, wheelVel);
+                float desiredVelChange = -steeringVel * GripFactor;
+                float desiredAccel = desiredVelChange / Time.fixedDeltaTime;
+
+                Vector3 steeringForce = steerDir * desiredAccel * WheelMass;
+                Rb.AddForceAtPosition(steeringForce, hit.point);
+
+                if(i < 2)
+                {
+                    Vector3 localEuler = Wheels[i].localEulerAngles;
+
+                    float turnFactor = 1f; //cur velocity / max velocity
+                    float targetAngle = MaxTurnAngle * inputs.x * turnFactor;
+                    CurrentAngles[i] = Mathf.Lerp(CurrentAngles[i], targetAngle, Time.fixedDeltaTime * RotSpeed);
+                    localEuler.y = CurrentAngles[i]; // assuming Y axis rotates wheel left/right
+                    Wheels[i].localEulerAngles = localEuler;
+                }
+                
+            }
         }
-
-        if (!IsGrounded)
-        {
-            //DO IT WITH ADDTORQUE
-            float rotDelta = 0.3f * Time.deltaTime;
-            Rb.MoveRotation(Quaternion.Slerp(Rb.rotation, Quaternion.Euler(15f, Rb.rotation.eulerAngles.y, 0f), rotDelta));
-        }
-
-        Vector3 sideForce = Vector3.zero;
-
-        if (IsMoving && IsGrounded)
-        {
-            Vector3 sideDir = Vector3.Project(Rb.velocity, transform.right); //points outwards from body
-            sideForce = -sideDir * GripForce;
-        }
-
-        Vector3 springForce = Vector3.zero;
-
-        //suspention
-        if(IsGrounded)
-        {
-            float offset = DesiredOffset - hit.distance; //up = +, down = -
-            float suspForce = (offset * SuspStrength) - (Vector3.Dot(transform.up, Rb.velocity) * DamperStrength);
-            springForce = suspForce * transform.up;
-            Debug.Log(springForce);
-        }
-
-        Vector3 engineForce = transform.forward * inputs.y * EngineForce;
-
-        Rb.AddForce(engineForce + sideForce + springForce, ForceMode.Force);
-        //CLAMP XZ
+        
     }
 }
