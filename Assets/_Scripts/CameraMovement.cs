@@ -4,34 +4,68 @@ using UnityEngine;
 
 public class CameraMovement : MonoBehaviour
 {
-    //freecam
-    [SerializeField] Transform CarTrans;
-    [SerializeField] CarMovement Movement;
-    [SerializeField] float OrbitRange = 5f, Angle = -90, VertOffset = 5f, BaseFOV = 60f, MaxFOV = 80f;
+    [Tooltip("Checks if the gun camera is active")]
+    public bool GunCanFire;
 
+    [SerializeField] Transform[] Transforms;
+    [SerializeField] CarMovement Movement;
+    [SerializeField] float OrbitRange = 5f, PosYOffset = 2f, BaseFOV = 60f, MaxFOV = 80f;
+
+    Transform CurrentTrans;
     Camera Cam;
+
+    float VertOffset, Angle = -90;
+    int Index;
 
     private void Start()
     {
         Cam = GetComponent<Camera>();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        CurrentTrans = Transforms[Index];
     }
 
     private void Update()
     {
-        //float ProgressFOV = Mathf.Abs(Movement.Rb.velocity.magnitude / Movement.MaxVel);
-        //Cam.fieldOfView = Mathf.Lerp(BaseFOV, MaxFOV, ProgressFOV);
+        CurrentTrans = Transforms[Index];
+        GunCanFire = CurrentTrans.CompareTag("Gun") ? true : false;
+
+        float ProgressFOV = Mathf.Abs(Movement.Rb.velocity.magnitude / Movement.MaxTurnVel);
+        Cam.fieldOfView = Mathf.Lerp(BaseFOV, MaxFOV, ProgressFOV);
 
         Angle -= Input.GetAxisRaw("Mouse X");
         VertOffset -= Input.GetAxisRaw("Mouse Y");
-        VertOffset = Mathf.Clamp(VertOffset, 0f, 18f);
+        VertOffset = Mathf.Clamp(VertOffset, -5f, 18f);
 
         float orbitX = Mathf.Cos(Angle * Mathf.Deg2Rad);
         float orbitZ = Mathf.Sin(Angle * Mathf.Deg2Rad);
 
         Vector3 orbit = OrbitRange * new Vector3(orbitX, 0f, orbitZ);
-        transform.position = CarTrans.position + orbit + new Vector3(0f, VertOffset, 0f);
-        transform.LookAt(CarTrans.position);
+        transform.position = CurrentTrans.position + orbit + new Vector3(0f, VertOffset, 0f);
+        transform.LookAt(CurrentTrans.position + new Vector3(0f, PosYOffset, 0f));
+
+        if (Input.GetAxisRaw("Mouse ScrollWheel") > 0.01f)
+        {
+            if(Index + 1 < Transforms.Length)
+            {
+                Index++;
+            }
+            else
+            {
+                Index = 0;
+            }
+                
+        }
+        else if(Input.GetAxisRaw("Mouse ScrollWheel") < -0.01f)
+        {
+            if (Index - 1 >= 0)
+            {
+                Index--;
+            }
+            else
+            {
+                Index = Transforms.Length - 1;
+            }
+        }
     }
 }

@@ -5,18 +5,18 @@ using UnityEngine;
 
 public class CarMovement : MonoBehaviour
 {
-    public float MaxVel = 20f;
+    public  Rigidbody Rb;
 
-    [SerializeField] Rigidbody Rb;
+    public float MaxTurnVel = 20f;
+
     [SerializeField] Transform[] Wheels;
     [SerializeField] Transform[] Suspentions;
     [SerializeField] Transform COM;
     [SerializeField] float[] CurrentAngles;
-    [SerializeField] float EngineForce = 20f, GripFactor = 0.8f, DesiredOffset = 1f, SuspStrength, DamperStrength, RotSpeed = 5f, WheelMass = 1f, MaxTurnAngle = 40f;
+    [SerializeField] float EngineForce = 20f, GripCoef = 0.8f, DragCoef = 0.7f, DesiredOffset = 1f, SuspStrength, DamperStrength, RotSpeed = 5f, WheelMass = 1f, MaxTurnAngle = 40f;
 
     private void Start()
     {
-        Physics.gravity = new Vector3(0f, -19.82f, 0f);
         Rb.centerOfMass = COM.position;
     }
 
@@ -26,6 +26,8 @@ public class CarMovement : MonoBehaviour
 
         for(int i = 0; i < Wheels.Length; i++)
         {
+            float velMag = Rb.velocity.magnitude;
+
             Physics.Raycast(Wheels[i].position, -Suspentions[i].up, out RaycastHit hit, DesiredOffset * 1.5f);
             if(hit.collider != null)
             {
@@ -46,21 +48,26 @@ public class CarMovement : MonoBehaviour
                 Vector3 engineForce = Wheels[i].forward * inputs.y * EngineForce;
                 Rb.AddForceAtPosition(engineForce, hit.point);
 
+                //drag
+                Vector3 DragDir = -Rb.velocity;
+                Vector3 dragForce = DragDir * DragCoef;
+                Rb.AddForce(dragForce);
+
                 //side force
                 Vector3 steerDir = Wheels[i].right;
                 Vector3 wheelVel = Rb.GetPointVelocity(Wheels[i].position);
                 float steeringVel = Vector3.Dot(steerDir, wheelVel);
-                float desiredVelChange = -steeringVel * GripFactor;
+                float desiredVelChange = -steeringVel * GripCoef;
                 float desiredAccel = desiredVelChange / Time.fixedDeltaTime;
 
                 Vector3 steeringForce = steerDir * desiredAccel * WheelMass;
                 Rb.AddForceAtPosition(steeringForce, hit.point);
 
-                if(i < 2)
+                if(Wheels[i].CompareTag("Steering"))
                 {
                     Vector3 localEuler = Wheels[i].localEulerAngles;
 
-                    float turnFactor = 1f; //cur velocity / max velocity
+                    float turnFactor = Mathf.Max(1f - (velMag / MaxTurnVel), 0.1f);
                     float targetAngle = MaxTurnAngle * inputs.x * turnFactor;
                     CurrentAngles[i] = Mathf.Lerp(CurrentAngles[i], targetAngle, Time.fixedDeltaTime * RotSpeed);
                     localEuler.y = CurrentAngles[i]; // assuming Y axis rotates wheel left/right
