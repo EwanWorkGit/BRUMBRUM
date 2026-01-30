@@ -9,7 +9,7 @@ public class CameraMovement : MonoBehaviour
 
     [SerializeField] Transform[] Transforms;
     [SerializeField] CarMovement Movement;
-    [SerializeField] float OrbitRange = 5f, PosYOffset = 2f, BaseFOV = 60f, MaxFOV = 80f;
+    [SerializeField] float OrbitRange = 5f, PosYOffset = 2f, BaseFOV = 60f, MaxFOV = 80f, XSens = 1f, YSens = 1f;
 
     Transform CurrentTrans;
     Camera Cam;
@@ -33,8 +33,8 @@ public class CameraMovement : MonoBehaviour
         float ProgressFOV = Mathf.Abs(Movement.Rb.velocity.magnitude / Movement.MaxTurnVel);
         Cam.fieldOfView = Mathf.Lerp(BaseFOV, MaxFOV, ProgressFOV);
 
-        Angle -= Input.GetAxisRaw("Mouse X");
-        VertOffset -= Input.GetAxisRaw("Mouse Y");
+        Angle -= Input.GetAxisRaw("Mouse X") * XSens;
+        VertOffset -= Input.GetAxisRaw("Mouse Y") * YSens;
         VertOffset = Mathf.Clamp(VertOffset, -5f, 18f);
 
         float orbitX = Mathf.Cos(Angle * Mathf.Deg2Rad);

@@ -13,7 +13,7 @@ public class CarMovement : MonoBehaviour
     [SerializeField] Transform[] Suspentions;
     [SerializeField] Transform COM;
     [SerializeField] float[] CurrentAngles;
-    [SerializeField] float EngineForce = 20f, GripCoef = 0.8f, DragCoef = 0.7f, DesiredOffset = 1f, SuspStrength, DamperStrength, RotSpeed = 5f, WheelMass = 1f, MaxTurnAngle = 40f;
+    [SerializeField] float EngineForce = 20f, GripCoef = 0.8f, DragCoef = 0.7f, DesiredOffset = 1f, SuspStrength, DamperStrength, WheelRotSpeed = 5f, WheelMass = 1f, WheelMaxAngle = 40f, MaxVel = 20;
 
     private void Start()
     {
@@ -45,8 +45,11 @@ public class CarMovement : MonoBehaviour
                 Rb.AddForceAtPosition(springForce, hit.point);
                 
                 //engine force
-                Vector3 engineForce = Wheels[i].forward * inputs.y * EngineForce;
-                Rb.AddForceAtPosition(engineForce, hit.point);
+                if(Rb.velocity.magnitude <= MaxVel)
+                {
+                    Vector3 engineForce = Wheels[i].forward * inputs.y * EngineForce;
+                    Rb.AddForceAtPosition(engineForce, hit.point);
+                }
 
                 //drag
                 Vector3 DragDir = -Rb.velocity;
@@ -68,8 +71,8 @@ public class CarMovement : MonoBehaviour
                     Vector3 localEuler = Wheels[i].localEulerAngles;
 
                     float turnFactor = Mathf.Max(1f - (velMag / MaxTurnVel), 0.1f);
-                    float targetAngle = MaxTurnAngle * inputs.x * turnFactor;
-                    CurrentAngles[i] = Mathf.Lerp(CurrentAngles[i], targetAngle, Time.fixedDeltaTime * RotSpeed);
+                    float targetAngle = WheelMaxAngle * inputs.x * turnFactor;
+                    CurrentAngles[i] = Mathf.Lerp(CurrentAngles[i], targetAngle, Time.fixedDeltaTime * WheelRotSpeed);
                     localEuler.y = CurrentAngles[i]; // assuming Y axis rotates wheel left/right
                     Wheels[i].localEulerAngles = localEuler;
                 }

@@ -7,7 +7,7 @@ public class CarGun : MonoBehaviour
     [SerializeField] CameraMovement CameraScript;
     [SerializeField] CarMovement Movement;
     [SerializeField] Transform CamTrans;
-    [SerializeField] float MaxRange = 20f, RotSpeed = 20f, MinAngle = -5f, MaxAngle = 20f, Force = 200f;
+    [SerializeField] float MaxRange = 20f, RotSpeed = 20f, MinAngle = -5f, MaxAngle = 20f, Force = 200f, Damage = 50f;
 
     Vector3 Aimpoint = Vector3.zero;
 
@@ -26,7 +26,6 @@ public class CarGun : MonoBehaviour
             Debug.DrawRay(CamTrans.position, CamTrans.forward * MaxRange);
             if (hitCamera.collider != null)
             {
-                Debug.Log(hitCamera.collider.name);
                 Aimpoint = hitCamera.point;
             }
             else
@@ -55,11 +54,15 @@ public class CarGun : MonoBehaviour
                 if(hitGun.collider != null)
                 {
                     //throw shit
+                    if(hitGun.collider.transform.TryGetComponent(out BaseEnemy enemy))
+                    {
+                        enemy.Damage(Damage);
+                    }
+
                     if(hitGun.collider.transform.TryGetComponent(out Rigidbody hitRb))
                     {
                         Vector3 force = transform.forward * Force;
                         hitRb.AddForce(force, ForceMode.Impulse);
-                        hitRb.AddTorque(force, ForceMode.Impulse);
                     }
                 }
             }
