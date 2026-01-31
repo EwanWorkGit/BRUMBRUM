@@ -54,6 +54,7 @@ public class CarGun : MonoBehaviour
                 if(hitGun.collider != null)
                 {
                     //throw shit
+                    Debug.Log(hitGun.collider.name);
                     if(hitGun.collider.transform.TryGetComponent(out BaseEnemy enemy))
                     {
                         enemy.Damage(Damage);

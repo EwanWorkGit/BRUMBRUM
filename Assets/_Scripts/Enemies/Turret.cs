@@ -6,14 +6,16 @@ public enum TurretStates { Search, Attack }
 
 public class Turret : BaseEnemy
 {
+    [SerializeField] GameObject ProjPref;
     [SerializeField] Transform Target, TPivot, TMuzzle;
 
-    [SerializeField] float DangerRange = 30f, MaxAngle = 80f, RotSpeed = 5f;
+    [SerializeField] float DangerRange = 30f, MaxAngle = 80f, RotSpeed = 5f, TimerDur = 3f, AtkTimer, AtkForce = 200f;
     [SerializeField] bool CanAttack = false;
 
     private void Start()
     {
         //IsInvincible = true;
+        AtkTimer = TimerDur;
     }
 
     private void Update()
@@ -33,13 +35,20 @@ public class Turret : BaseEnemy
             Physics.Raycast(TMuzzle.position, TMuzzle.forward, out RaycastHit atkHit);
             if(atkHit.collider != null && atkHit.collider.transform == Target)
             {
-                Debug.Log("Ray hitting Target");
+                AtkTimer -= Time.deltaTime;
+                if(AtkTimer <= 0)
+                {
+                    //attack
+                    GameObject proj = Instantiate(ProjPref, TMuzzle.position, Quaternion.identity);
+                    Rigidbody rb = proj.GetComponent<Rigidbody>();
+                    rb.AddForce(TMuzzle.forward * AtkForce, ForceMode.Impulse);
+                    AtkTimer = TimerDur;
+                }
+            }
+            else //doesnt see target anymore
+            {
+                AtkTimer = TimerDur;
             }
         }
-    }
-
-        //raycast on player, if it hits that means theyre visible, then rotate, then launch another, if that hits then KILL!!!!!
-        //get angle y and angle x towards player transform, rotate that angle and if raycast hits then engage, if inside range
-
-    
+    } 
 }

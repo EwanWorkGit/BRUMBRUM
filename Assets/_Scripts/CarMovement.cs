@@ -17,7 +17,7 @@ public class CarMovement : MonoBehaviour
 
     private void Start()
     {
-        Rb.centerOfMass = COM.position;
+        Rb.centerOfMass = COM.localPosition;
     }
 
     private void FixedUpdate()
